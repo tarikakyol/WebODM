@@ -24,7 +24,7 @@ class ProjectList extends Paginated {
             projects: []
         }
 
-        this.PROJECTS_PER_PAGE = 10;
+        this.PROJECTS_PER_PAGE = 100;
 
         this.handleDelete = this.handleDelete.bind(this);
     }

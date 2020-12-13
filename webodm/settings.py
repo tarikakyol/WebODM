@@ -305,7 +305,7 @@ REST_FRAMEWORK = {
     'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
     'app.api.authentication.JSONWebTokenAuthenticationQS',
   ),
-  'PAGE_SIZE': 10,
+  'PAGE_SIZE': 100,
   'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
 }
 
