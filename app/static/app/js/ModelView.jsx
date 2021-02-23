@@ -6,10 +6,10 @@ import AssetDownloadButtons from './components/AssetDownloadButtons';
 import Standby from './components/Standby';
 import ShareButton from './components/ShareButton';
 import ImagePopup from './components/ImagePopup';
-import epsg from 'epsg';
 import PropTypes from 'prop-types';
 import * as THREE from 'THREE';
 import $ from 'jquery';
+import { _, interpolate } from './classes/gettext';
 
 require('./vendor/OBJLoader');
 require('./vendor/MTLLoader');
@@ -26,6 +26,9 @@ class TexturedModelMenu extends React.Component{
         this.state = {
             showTexturedModel: false
         }
+        
+        // Translation for sidebar.html
+        _("Cameras");
     }
 
     handleClick = (e) => {
@@ -38,7 +41,7 @@ class TexturedModelMenu extends React.Component{
                             type="checkbox" 
                             checked={this.state.showTexturedModel}
                             onChange={this.handleClick}
-                        /> Show Model</label>);
+                        /> {_("Show Model")}</label>);
     }
 }
 
@@ -65,7 +68,7 @@ class CamerasMenu extends React.Component{
                             type="checkbox" 
                             checked={this.state.showCameras}
                             onChange={this.handleClick}
-                        /> Show Cameras</label>);
+                        /> {_("Show Cameras")}</label>);
     }
 }
 
@@ -193,7 +196,7 @@ class ModelView extends React.Component {
     viewer.setEDLEnabled(true);
     viewer.setFOV(60);
     viewer.setPointBudget(1*1000*1000);
-    viewer.setEDLEnabled(false); // Temporary fix: https://github.com/OpenDroneMap/WebODM/issues/873
+    viewer.setEDLEnabled(true);
     viewer.loadSettingsFromURL();
         
     viewer.loadGUI(() => {
@@ -359,7 +362,7 @@ class ModelView extends React.Component {
                     const cameraMesh = new THREE.Mesh(cameraObj.geometry, material);
                     cameraMesh.matrixAutoUpdate = false;
                     let scale = 1.0;
-                    if (!this.pointCloud.projection) scale = 0.1;
+                    // if (!this.pointCloud.projection) scale = 0.1;
 
                     cameraMesh.matrix.set(...getMatrix(feat.properties.translation, feat.properties.rotation, scale).elements);
                     
@@ -376,9 +379,14 @@ class ModelView extends React.Component {
   }
 
   setPointCloudsVisible = (flag) => {
-    for(let pointcloud of viewer.scene.pointclouds){
-        pointcloud.visible = flag;
-    }
+    viewer.setEDLEnabled(true);
+    
+    // Using opacity we can still perform measurements
+    viewer.setEDLOpacity(flag ? 1 : 0);
+
+    // for(let pointcloud of viewer.scene.pointclouds){
+    //     pointcloud.visible = flag;
+    // }
   }
 
   toggleCameras(e){
@@ -478,7 +486,7 @@ class ModelView extends React.Component {
         </div> : ""}
 
           <Standby 
-            message="Loading textured model..."
+            message={_("Loading textured model...")}
             show={this.state.initializingModel}
             />
       </div>);
@@ -486,14 +494,18 @@ class ModelView extends React.Component {
 }
 
 $(function(){
-    // Add more proj definitions
-    const defs = [];
-    for (let k in epsg){
-        if (epsg[k]){
-            defs.push([k, epsg[k]]);
-        }
-    }
-    window.proj4.defs(defs);
+    // Use gettext for translations
+    const oldInit = i18n.init;
+    i18n.addPostProcessor("gettext", function(v, k, opts){
+        if (v){
+            return _(v);
+        }else return v;
+    });
+    i18n.init = function(opts, cb){
+        opts.preload = ['en'];
+        opts.postProcess = "gettext";
+        oldInit(opts, cb);
+    };
 
     $("[data-modelview]").each(function(){
         let props = $(this).data();
