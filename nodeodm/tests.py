@@ -11,7 +11,7 @@ from os import path
 from pyodm import Node
 from pyodm.exceptions import NodeConnectionError, NodeServerError, NodeResponseError
 from webodm import settings
-from .models import ProcessingNode, OFFLINE_MINUTES
+from .models import ProcessingNode
 from . import status_codes
 
 current_dir = path.dirname(path.realpath(__file__))
@@ -143,7 +143,7 @@ class TestClientApi(TestCase):
 
         # Verify that options have been updated after restarting the task
         task_info = api.get_task(uuid).info()
-        self.assertTrue(len(task_info.options) == 1)
+        self.assertTrue(len(task_info.options) == 2) # pc-ept has been added
         self.assertTrue(task_info.options[0]['name'] == 'mesh-size')
         self.assertTrue(task_info.options[0]['value'] == 12345)
 
@@ -190,7 +190,7 @@ class TestClientApi(TestCase):
         self.assertTrue(ProcessingNode.find_best_available_node().id == another_pnode.id)
 
         # Bring it offline
-        another_pnode.last_refreshed -= timedelta(minutes=OFFLINE_MINUTES)
+        another_pnode.last_refreshed -= timedelta(minutes=settings.NODE_OFFLINE_MINUTES)
         another_pnode.save()
         self.assertFalse(another_pnode.is_online())
 

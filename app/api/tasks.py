@@ -40,12 +40,16 @@ class TaskSerializer(serializers.ModelSerializer):
     processing_node = serializers.PrimaryKeyRelatedField(queryset=ProcessingNode.objects.all()) 
     processing_node_name = serializers.SerializerMethodField()
     can_rerun_from = serializers.SerializerMethodField()
+    statistics = serializers.SerializerMethodField()
 
     def get_processing_node_name(self, obj):
         if obj.processing_node is not None:
             return str(obj.processing_node)
         else:
             return None
+
+    def get_statistics(self, obj):
+        return obj.get_statistics()
 
     def get_can_rerun_from(self, obj):
         """
@@ -204,7 +208,30 @@ class TaskViewSet(viewsets.ViewSet):
             for image in files:
                 models.ImageUpload.objects.create(task=task, image=image)
 
+        task.images_count = models.ImageUpload.objects.filter(task=task).count()
+        # Update other parameters such as processing node, task name, etc.
+        serializer = TaskSerializer(task, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
         return Response({'success': True}, status=status.HTTP_200_OK)
+
+    @detail_route(methods=['post'])
+    def duplicate(self, request, pk=None, project_pk=None):
+        """
+        Duplicate a task
+        """
+        get_and_check_project(request, project_pk, ('change_project', ))
+        try:
+            task = self.queryset.get(pk=pk, project=project_pk)
+        except (ObjectDoesNotExist, ValidationError):
+            raise exceptions.NotFound()
+
+        new_task = task.duplicate()
+        if new_task:
+            return Response({'success': True, 'task': TaskSerializer(new_task).data}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': _("Cannot duplicate task")}, status=status.HTTP_200_OK)
 
     def create(self, request, project_pk=None):
         project = get_and_check_project(request, project_pk, ('change_project', ))
